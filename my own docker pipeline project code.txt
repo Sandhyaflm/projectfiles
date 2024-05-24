@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+    tools {
+        jdk 'jdk17'
+        nodejs 'node16'
+    }
+    environment {
+        SCANNER_HOME=tool 'mysonar'
+    }
+    stages {
+        stage('code') {
+            steps {
+                git "https://github.com/Sandhyaflm/Zomato-Project.git"
+            }
+        }
+        stage ("scan") {
+            steps {
+               withSonarQubeEnv('mysonar') {
+                    sh """$SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectName=zomato \
+                        -Dsonar.projectKey=zomato"""
+                }
+            }
+        }
+        stage ("Quality gates") {
+            steps {
+                script {
+                     waitForQualityGate abortPiple: false, credentialsId: 'sona'
+                }
+            }
+        }
+        stage ("Install Dependencies") {
+            steps {
+                sh 'npm install'
+            }
+        }
+        stage ("OWASP") {
+            steps {
+               dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit ', odcInstallation: 'DP-Check'
+               dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage ("trivy file") {
+            steps {
+                sh 'trivy fs. > trivyfs.txt'
+            }
+        }
+        stage ("Build Image") {
+            steps {
+                sh 'docker build -t zomato .'
+            }
+        }
+        stage ("Scan Image") {
+            steps {
+                sh 'trivy image zomato'
+            }
+        }
+        stage ("Push") {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker') {
+                        sh 'docker tag zomato sandhya2507/sanju:zomato'
+                        sh 'docker push sandhya2507/sanju:zomato'
+                    }
+                }
+            }
+        }
+        stage ("Deploy") {
+            steps {
+                sh 'docker run -itd --name myzomato -p 3000:3000 sandhya2507/sanju:zomato'
+            }
+        }
+    }
+}
