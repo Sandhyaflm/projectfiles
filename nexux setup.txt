@@ -1,0 +1,16 @@
+nexux setup
+
+STEP-1: Launch an instance with 9000 and t2.medium
+STE-2: cd /opt/
+STEP-3: wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-8.9.6.50800.zip
+STEP-4: unzip filename
+STEP-5: amazon-linux-extras install java-openjdk11 -y
+STEP-6: useradd sonar
+STEP-7: chown sonar:sonar filename  -R
+STEP-8: chmod 777 filename -R
+STEP-9: su - sonar
+STEP-10: cd /opt
+STEP-11: cd sonar—/bin/linux/
+./sonar.sh start
+./sonar status
+LOGIN INTO WEBPAGE WITH PUBLIC IP AND 9000 PORT
