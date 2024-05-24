@@ -1,0 +1,26 @@
+node {
+    stage ("code") {
+        git "https://github.com/Sandhyaflm/one.git"
+    }
+    stage ("build") {
+        def mavenHome = tool name:"maven",type:"maven"
+        def mavenCMD = "${mavenHome}/bin/mvn"
+        sh "${mavenCMD} clean package"
+    }
+    stage ("CQA") {
+        withSonarQubeEnv('mysonar')
+        {
+            def mavenHome = tool name:"maven",type:"maven"
+            def mavenCMD = "${mavenHome}/bin/mvn"
+            sh "${mavenCMD} sonar:sonar"
+        }
+    }
+    stage ("Nexus") {
+        nexusArtifactUploader artifacts: [[artifactId: 'myweb', classifier: '', file: 'target/myweb-8.5.8.war', type: 'war']], credentialsId: 'nexus', groupId: 'in.javahome', nexusUrl: '3.87.152.223:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'sandhya-repo', version: '8.5.8'
+    }
+    stage ("Deployment") {
+        sshagent(['slave']) {
+            sh 'scp -o StrictHostKeyChecking=no target/*.war ec2-user@3.94.146.125:/home/ec2-user/apache-tomcat-9.0.86/webapps/'
+            }
+    }
+}
